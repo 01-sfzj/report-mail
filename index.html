@@ -25,9 +25,8 @@
             width: 100%;
             border-radius: 28px;
             box-shadow: 0 8px 28px rgba(0,0,0,0.08);
-            overflow: hidden;
-            text-align: center;
             padding: 32px 24px 40px;
+            text-align: center;
         }
         .icon {
             font-size: 56px;
@@ -56,7 +55,7 @@
             font-weight: 600;
             color: #4a5568;
             display: inline-block;
-            width: 60px;
+            width: 70px;
         }
         .info-value {
             color: #1a2634;
@@ -73,6 +72,7 @@
             width: 100%;
             cursor: pointer;
             transition: background 0.2s;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -82,21 +82,44 @@
             background: #0052a3;
             transform: scale(0.98);
         }
+        .copy-btn {
+            background: #28a745;
+        }
+        .copy-btn:active {
+            background: #1e7e34;
+        }
+        .qq-btn {
+            background: #12b7f5;
+        }
+        .qq-btn:active {
+            background: #0e9ad4;
+        }
         .tip {
             font-size: 13px;
             color: #6c757d;
-            margin-top: 24px;
+            margin-top: 20px;
             line-height: 1.4;
         }
-        .manual-link {
-            color: #0066cc;
-            text-decoration: none;
-            font-weight: 500;
+        .toast {
+            visibility: hidden;
+            min-width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 8px;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
         }
-        hr {
-            margin: 20px 0 12px;
-            border: none;
-            border-top: 1px solid #e9ecef;
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
         }
     </style>
 </head>
@@ -104,12 +127,12 @@
 <div class="card">
     <div class="icon">📧</div>
     <h1>线索举报</h1>
-    <p style="color:#4a5568; margin-bottom: 8px;">点击下方按钮，自动打开邮件客户端</p>
+    <p style="color:#4a5568; margin-bottom: 8px;">请通过邮件发送线索</p>
 
     <div class="info-box">
         <div class="info-item">
             <span class="info-label">收件人：</span>
-            <span class="info-value">651578199@qq.com</span>
+            <span class="info-value" id="emailAddress">651578199@qq.com</span>
         </div>
         <div class="info-item">
             <span class="info-label">主　题：</span>
@@ -117,34 +140,73 @@
         </div>
         <div class="info-item">
             <span class="info-label">说　明：</span>
-            <span class="info-value">邮件正文可自由填写线索内容</span>
+            <span class="info-value">邮件正文请详细描述线索</span>
         </div>
     </div>
 
     <button id="mailBtn">
-        ✉️ 打开邮件客户端
+        ✉️ 使用默认邮件客户端发送
+    </button>
+    <button id="qqMailBtn" class="qq-btn">
+        💬 直接使用 QQ 邮箱发送
+    </button>
+    <button id="copyBtn" class="copy-btn">
+        📋 复制收件人地址
     </button>
 
     <div class="tip">
-        ⚠️ 如果点击后无反应，说明手机未安装邮件App。<br>
-        请复制收件人地址 <strong>651578199@qq.com</strong>，手动打开邮箱发送。
+        ✅ 点击“默认邮件客户端”会弹出选择，可选择 QQ 邮箱等。<br>
+        📱 如无法跳转，请复制地址后手动打开 QQ 邮箱粘贴。
     </div>
 </div>
 
+<div id="toast" class="toast">已复制，请打开QQ邮箱粘贴收件人</div>
+
 <script>
-    // 预定义的 mailto 链接（收件人 + 主题）
-    const mailtoLink = 'mailto:651578199@qq.com?subject=线索举报';
+    const email = '651578199@qq.com';
+    const subject = '线索举报';
+    const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}`;
+    // 直接唤起 QQ 邮箱的协议（Android/iOS 均支持，需安装 QQ 邮箱 App）
+    const qqMailLink = `mqq://mail/compose?to=${email}&subject=${encodeURIComponent(subject)}`;
 
-    // 页面加载后自动尝试唤起邮件（延迟300ms，避免被微信完全拦截）
-    window.addEventListener('load', function() {
-        setTimeout(function() {
-            window.location.href = mailtoLink;
-        }, 300);
-    });
+    // 显示提示浮层
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg || '已复制，请打开QQ邮箱粘贴收件人';
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2000);
+    }
 
-    // 按钮点击事件（确保用户主动操作可唤起）
+    // 默认邮件客户端按钮
     document.getElementById('mailBtn').addEventListener('click', function() {
         window.location.href = mailtoLink;
+    });
+
+    // 直接唤起 QQ 邮箱按钮（仅限已安装 QQ 邮箱 App 的用户）
+    document.getElementById('qqMailBtn').addEventListener('click', function() {
+        window.location.href = qqMailLink;
+        // 如果无法唤起，3秒后提示兜底
+        setTimeout(() => {
+            showToast('如果未打开QQ邮箱，请手动复制地址');
+        }, 1000);
+    });
+
+    // 复制邮箱地址
+    document.getElementById('copyBtn').addEventListener('click', function() {
+        navigator.clipboard.writeText(email).then(() => {
+            showToast('已复制收件人地址：' + email);
+        }).catch(() => {
+            // 降级方案
+            const textarea = document.createElement('textarea');
+            textarea.value = email;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('已复制收件人地址：' + email);
+        });
     });
 </script>
 </body>
